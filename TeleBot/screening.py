@@ -1,5 +1,5 @@
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ConversationHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ConversationHandler, filters, ContextTypes
 import logging
 import os
 from dotenv import load_dotenv
@@ -18,13 +18,12 @@ logger.info("Environment variables loaded")
 # Bot token
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 if not BOT_TOKEN:
-    raise ValueError("No BOT_TOKEN found in environment variables or .env file is missing.")
+    raise ValueError("No BOT_TOKEN found in environment variables")
 logger.info("Bot token loaded successfully")
 
 # States
 AWAITING_FIRST_ANSWER = 1
 AWAITING_SECOND_ANSWER = 2
-FOLLOW_UP = 3
 
 def get_yes_no_keyboard():
     keyboard = [[
@@ -33,42 +32,39 @@ def get_yes_no_keyboard():
     ]]
     return InlineKeyboardMarkup(keyboard)
 
-async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle the /start command through callback."""
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Start the conversation."""
     keyboard = get_yes_no_keyboard()
-    if update.callback_query:
-        await update.callback_query.message.reply_text(
-            "Do you have chatting experience?",
-            reply_markup=keyboard
-        )
-    else:
-        await update.message.reply_text(
-            "Do you have chatting experience?",
-            reply_markup=keyboard
-        )
+    await update.message.reply_text(
+        "Do you have chatting experience?",
+        reply_markup=keyboard
+    )
     return AWAITING_FIRST_ANSWER
 
 async def handle_first_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle the first answer."""
     query = update.callback_query
-    await query.answer("Processing...")
+    await query.answer()
     
-    if query.data != "yes":
+    if query.data == "no":
         await query.message.reply_text(
             "I'm sorry, but this role requires prior chatting experience. Thank you for your interest!"
         )
         return ConversationHandler.END
     
+    keyboard = get_yes_no_keyboard()
     await query.message.reply_text(
         "Are you available for 5-7 days per week for 8-hour shifts?",
-        reply_markup=get_yes_no_keyboard()
+        reply_markup=keyboard
     )
     return AWAITING_SECOND_ANSWER
 
 async def handle_second_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle the second answer."""
     query = update.callback_query
-    await query.answer("Processing...")
+    await query.answer()
     
-    if query.data != "yes":
+    if query.data == "no":
         await query.message.reply_text(
             "I'm sorry, but this role requires availability for 5-7 days per week. Thank you for your interest!"
         )
@@ -76,54 +72,37 @@ async def handle_second_answer(update: Update, context: ContextTypes.DEFAULT_TYP
     
     await query.message.reply_text(
         "Great! Here's the form to fill out: "
-        "https://docs.google.com/forms/d/e/1FAIpQLSdxTqaq4dCHuIdnV1e3m9oBLlaPWiZV1Qx-Q_0yrmuYmFtK5A/viewform?usp=sharing"
+        "https://docs.google.com/forms/d/e/1FAIpQLSdxTqaq4dCHuIdnV1e3m9oBLlaPWiZV1Qx-Q_0yrmuYmFtK5A/viewform?usp=sharing\n\n"
+        "I'll send you a reminder in 24 hours if you haven't filled it out yet!"
     )
-    
-    # Set a follow-up reminder in 24 hours
-    user_id = query.from_user.id
-    context.job_queue.run_once(follow_up_message, 86400, chat_id=user_id, name=str(user_id))
     return ConversationHandler.END
 
-async def follow_up_message(context: ContextTypes.DEFAULT_TYPE):
-    job = context.job
-    try:
-        await context.bot.send_message(
-            chat_id=job.chat_id,
-            text="Hey! Just a reminder to fill out the application form if you haven't already: "
-            "https://docs.google.com/forms/d/e/1FAIpQLSdxTqaq4dCHuIdnV1e3m9oBLlaPWiZV1Qx-Q_0yrmuYmFtK5A/viewform?usp=sharing"
-        )
-    except Exception as e:
-        logger.error(f"Error sending follow-up message: {e}")
-
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+    """Handle errors."""
     logger.error(f"Error occurred: {context.error}")
 
 def main():
-    """Run the bot."""
-    # Build application
-    logger.info("Building application...")
+    """Start the bot."""
+    # Create application
     application = Application.builder().token(BOT_TOKEN).build()
-    logger.info("Application built successfully")
 
-    # Add handlers
-    logger.info("Setting up conversation handler...")
+    # Add conversation handler
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start_callback)],
+        entry_points=[CommandHandler("start", start)],
         states={
             AWAITING_FIRST_ANSWER: [CallbackQueryHandler(handle_first_answer)],
-            AWAITING_SECOND_ANSWER: [CallbackQueryHandler(handle_second_answer)],
+            AWAITING_SECOND_ANSWER: [CallbackQueryHandler(handle_second_answer)]
         },
-        fallbacks=[CommandHandler('start', start_callback)],
-        per_chat=True,
-        per_user=True
+        fallbacks=[CommandHandler("start", start)]
     )
-    
+
+    # Add handlers
     application.add_handler(conv_handler)
     application.add_error_handler(error_handler)
-    logger.info("Handlers added successfully")
 
-    logger.info("Starting bot polling...")
-    application.run_polling(drop_pending_updates=True)
+    # Start polling
+    logger.info("Starting bot...")
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
     main()
