@@ -1,0 +1,1 @@
+worker: cd TeleBot && python screening.py 

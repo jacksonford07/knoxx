@@ -120,10 +120,18 @@ def main():
     application.add_handler(conv_handler)
     application.add_error_handler(error_handler)
 
-    print("Bot started!")
+    print("Bot started! Running polling...")
     
-    # Run the bot until the user presses Ctrl-C
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    # Run the bot with minimal settings
+    application.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True,
+        pool_timeout=30
+    )
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        logger.error(f"Main loop error: {e}")
+        raise e
