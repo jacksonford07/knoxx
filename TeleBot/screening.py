@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 # Bot token
-BOT_TOKEN = os.getenv('7801946590:AAFsXuM5k5K1rw4ep3iEbQvRbv7037pzkG0')
+BOT_TOKEN = os.getenv('BOT_TOKEN')
 if not BOT_TOKEN:
     raise ValueError("No BOT_TOKEN found in environment variables or .env file is missing.")
 
