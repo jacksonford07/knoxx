@@ -33,10 +33,19 @@ def get_yes_no_keyboard():
     ]]
     return InlineKeyboardMarkup(keyboard)
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Do you have chatting experience?", reply_markup=get_yes_no_keyboard()
-    )
+async def start_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle the /start command through callback."""
+    keyboard = get_yes_no_keyboard()
+    if update.callback_query:
+        await update.callback_query.message.reply_text(
+            "Do you have chatting experience?",
+            reply_markup=keyboard
+        )
+    else:
+        await update.message.reply_text(
+            "Do you have chatting experience?",
+            reply_markup=keyboard
+        )
     return AWAITING_FIRST_ANSWER
 
 async def handle_first_answer(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -50,7 +59,8 @@ async def handle_first_answer(update: Update, context: ContextTypes.DEFAULT_TYPE
         return ConversationHandler.END
     
     await query.message.reply_text(
-        "Are you available for 5-7 days per week for 8-hour shifts?", reply_markup=get_yes_no_keyboard()
+        "Are you available for 5-7 days per week for 8-hour shifts?",
+        reply_markup=get_yes_no_keyboard()
     )
     return AWAITING_SECOND_ANSWER
 
@@ -96,13 +106,12 @@ async def main():
 
     # Add handlers
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', start)],
+        entry_points=[CallbackQueryHandler(start_callback), CommandHandler('start', start_callback)],
         states={
             AWAITING_FIRST_ANSWER: [CallbackQueryHandler(handle_first_answer)],
             AWAITING_SECOND_ANSWER: [CallbackQueryHandler(handle_second_answer)],
         },
-        fallbacks=[CommandHandler('start', start)],
-        per_message=True  # Add this to handle the warning
+        fallbacks=[CallbackQueryHandler(start_callback)],
     )
     
     application.add_handler(conv_handler)
@@ -110,17 +119,20 @@ async def main():
 
     print("Bot started! Press Ctrl+C to stop.")
     
-    # Run the bot
-    await application.run_polling(allowed_updates=Update.ALL_TYPES, close_loop=False)
-
-def run_bot():
-    """Run the bot."""
-    asyncio.run(main())
+    # Start the bot
+    await application.initialize()
+    await application.start()
+    await application.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
     try:
-        run_bot()
+        # Set up the event loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(main())
     except KeyboardInterrupt:
         print("Bot stopped gracefully!")
     except Exception as e:
         print(f"Error occurred: {e}")
+    finally:
+        loop.close()
