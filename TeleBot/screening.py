@@ -15,8 +15,11 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 logger.info("Environment variables loaded")
 
-# Bot token
+# Environment variables
 BOT_TOKEN = os.getenv('BOT_TOKEN')
+PORT = int(os.getenv('PORT', '8443'))
+RENDER_EXTERNAL_URL = os.getenv('RENDER_EXTERNAL_URL')
+
 if not BOT_TOKEN:
     raise ValueError("No BOT_TOKEN found in environment variables or .env file is missing.")
 logger.info("Bot token loaded successfully")
@@ -122,8 +125,18 @@ def main():
     application.add_error_handler(error_handler)
     logger.info("Handlers added successfully")
 
-    logger.info("Starting bot polling...")
-    application.run_polling(drop_pending_updates=True)
+    # Use webhooks in production, polling in development
+    if RENDER_EXTERNAL_URL:
+        logger.info(f"Starting webhook on port {PORT}...")
+        application.run_webhook(
+            listen="0.0.0.0",
+            port=PORT,
+            webhook_url=f"{RENDER_EXTERNAL_URL}/webhook",
+            drop_pending_updates=True
+        )
+    else:
+        logger.info("Starting polling (development mode)...")
+        application.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
     main()
