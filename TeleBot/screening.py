@@ -102,6 +102,7 @@ async def main():
             AWAITING_SECOND_ANSWER: [CallbackQueryHandler(handle_second_answer)],
         },
         fallbacks=[CommandHandler('start', start)],
+        per_message=True  # Add this to handle the warning
     )
     
     application.add_handler(conv_handler)
@@ -109,22 +110,16 @@ async def main():
 
     print("Bot started! Press Ctrl+C to stop.")
     
-    # Initialize the application
-    await application.initialize()
-    
-    try:
-        # Start the bot
-        await application.start()
-        # Run the bot until a signal is received
-        await application.run_polling(allowed_updates=Update.ALL_TYPES)
-    finally:
-        # Properly close the application
-        await application.stop()
-        await application.shutdown()
+    # Run the bot
+    await application.run_polling(allowed_updates=Update.ALL_TYPES, close_loop=False)
+
+def run_bot():
+    """Run the bot."""
+    asyncio.run(main())
 
 if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        run_bot()
     except KeyboardInterrupt:
         print("Bot stopped gracefully!")
     except Exception as e:
