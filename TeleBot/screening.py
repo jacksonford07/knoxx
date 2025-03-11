@@ -115,8 +115,7 @@ def main():
         },
         fallbacks=[CommandHandler('start', start_callback)],
         per_chat=True,
-        per_user=True,
-        per_message=True
+        per_user=True
     )
     
     application.add_handler(conv_handler)
