@@ -15,11 +15,13 @@ logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
+logger.info("Environment variables loaded")
 
 # Bot token
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 if not BOT_TOKEN:
     raise ValueError("No BOT_TOKEN found in environment variables or .env file is missing.")
+logger.info("Bot token loaded successfully")
 
 # States
 AWAITING_FIRST_ANSWER = 1
@@ -103,9 +105,12 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
 def main():
     """Run the bot."""
     # Build application
+    logger.info("Building application...")
     application = Application.builder().token(BOT_TOKEN).build()
+    logger.info("Application built successfully")
 
     # Add handlers
+    logger.info("Setting up conversation handler...")
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start_callback)],
         states={
@@ -119,8 +124,9 @@ def main():
     
     application.add_handler(conv_handler)
     application.add_error_handler(error_handler)
+    logger.info("Handlers added successfully")
 
-    print("Bot started! Running polling...")
+    logger.info("Starting bot polling...")
     
     # Run the bot with minimal settings
     application.run_polling(
@@ -131,7 +137,8 @@ def main():
 
 if __name__ == "__main__":
     try:
+        logger.info("Starting bot...")
         main()
     except Exception as e:
-        logger.error(f"Main loop error: {e}")
+        logger.error(f"Main loop error: {e}", exc_info=True)  # Added exc_info for full traceback
         raise e
