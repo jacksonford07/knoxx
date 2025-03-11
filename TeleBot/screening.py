@@ -108,7 +108,24 @@ async def main():
     application.add_error_handler(error_handler)
 
     print("Bot started! Press Ctrl+C to stop.")
-    await application.run_polling()
+    
+    # Initialize the application
+    await application.initialize()
+    
+    try:
+        # Start the bot
+        await application.start()
+        # Run the bot until a signal is received
+        await application.run_polling(allowed_updates=Update.ALL_TYPES)
+    finally:
+        # Properly close the application
+        await application.stop()
+        await application.shutdown()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Bot stopped gracefully!")
+    except Exception as e:
+        print(f"Error occurred: {e}")
