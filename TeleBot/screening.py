@@ -100,18 +100,21 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
     if isinstance(context.error, Conflict):
         logger.error("Bot conflict detected. Make sure no other instances are running!")
 
-async def main():
+def main():
+    """Run the bot."""
     # Build application
     application = Application.builder().token(BOT_TOKEN).build()
 
     # Add handlers
     conv_handler = ConversationHandler(
-        entry_points=[CallbackQueryHandler(start_callback), CommandHandler('start', start_callback)],
+        entry_points=[CommandHandler('start', start_callback)],
         states={
             AWAITING_FIRST_ANSWER: [CallbackQueryHandler(handle_first_answer)],
             AWAITING_SECOND_ANSWER: [CallbackQueryHandler(handle_second_answer)],
         },
-        fallbacks=[CallbackQueryHandler(start_callback)],
+        fallbacks=[CommandHandler('start', start_callback)],
+        per_chat=True,
+        per_user=True
     )
     
     application.add_handler(conv_handler)
@@ -119,8 +122,8 @@ async def main():
 
     print("Bot started!")
     
-    # Start the bot without any fancy event loop management
-    await application.run_polling(drop_pending_updates=True)
+    # Run the bot until the user presses Ctrl-C
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
