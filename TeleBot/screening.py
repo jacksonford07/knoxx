@@ -117,22 +117,10 @@ async def main():
     application.add_handler(conv_handler)
     application.add_error_handler(error_handler)
 
-    print("Bot started! Press Ctrl+C to stop.")
+    print("Bot started!")
     
-    # Start the bot
-    await application.initialize()
-    await application.start()
+    # Start the bot without any fancy event loop management
     await application.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
-    try:
-        # Set up the event loop
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(main())
-    except KeyboardInterrupt:
-        print("Bot stopped gracefully!")
-    except Exception as e:
-        print(f"Error occurred: {e}")
-    finally:
-        loop.close()
+    asyncio.run(main())
